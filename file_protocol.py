@@ -25,12 +25,10 @@ class FileProtocol:
     def proses_string(self, string_datamasuk=''):
         logging.warning(f"string diproses: {string_datamasuk}")
         try:
-            # Jangan lowercase seluruh string karena base64 case sensitive
-            # Pecah dengan shlex, yang bisa menangani quotes dll
             c = shlex.split(string_datamasuk)
             if len(c) == 0:
                 return json.dumps(dict(status='ERROR', data='request kosong'))
-            c_request = c[0].lower()  # command hanya lowercase saja
+            c_request = c[0].lower()  
             logging.warning(f"memproses request: {c_request}")
             params = c[1:]
             cl = getattr(self.file, c_request)(params)
