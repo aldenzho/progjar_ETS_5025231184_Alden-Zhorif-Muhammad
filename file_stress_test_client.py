@@ -6,7 +6,7 @@ import socket
 import logging
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
-server_address = ("172.18.0.3", 60001)  # ganti IP jika server remote
+server_address = ("172.18.0.3", 60001)  
 
 def send_command(command_str):
     try:
@@ -91,7 +91,6 @@ def download_file(filename):
 
     if success and result.get("status") == "OK":
         file_bytes = base64.b64decode(result["file_content"])
-        # Simpan di folder progjarETS dengan nama file asli
         local_path = os.path.join(local_folder, os.path.basename(filename))
         with open(local_path, "wb") as f:
             f.write(file_bytes)
