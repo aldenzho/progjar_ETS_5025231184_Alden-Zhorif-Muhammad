@@ -40,7 +40,6 @@ def save_file_stream(file_name, chunk_generator):
                 logging.error(f"Base64 decode error: {e}")
                 raise e
 
-        # decode sisa
         if leftover:
             try:
                 f.write(base64.b64decode(leftover))
@@ -49,7 +48,7 @@ def save_file_stream(file_name, chunk_generator):
                 raise e
 def handle_client(conn, addr):
     logging.info(f"Connected by {addr}")
-    conn.settimeout(30)  # beri timeout lebih panjang untuk upload file besar
+    conn.settimeout(30)  
     data_buffer = ""
 
     try:
@@ -59,7 +58,6 @@ def handle_client(conn, addr):
                 break
             data_buffer += data.decode(errors="ignore")
 
-            # cek apakah sudah ada pemisah request JSON
             if "\r\n\r\n" in data_buffer:
                 request_str, _, remainder = data_buffer.partition("\r\n\r\n")
                 data_buffer = remainder
@@ -68,7 +66,6 @@ def handle_client(conn, addr):
                     request_json = json.loads(request_str)
                     cmd = request_json.get("command", "").lower()
                 except Exception:
-                    # fallback untuk perintah plain text seperti "list"
                     cmd = request_str.strip().lower()
                     if cmd == "list":
                         try:
@@ -87,25 +84,19 @@ def handle_client(conn, addr):
 
                 if cmd == "upload":
                     file_name = request_json.get("file_name")
-                    # Mulai menerima base64 content streaming dari sisa buffer
                     file_content_b64_start = request_json.get("file_content", "")
-
-                    # Kirim acknowledgment ke client supaya client mulai streaming base64 potongan
                     conn.sendall(json.dumps({"status": "READY"}).encode() + b"\r\n\r\n")
 
                     def base64_generator():
-                        # Yield base64 dari bagian awal (jika ada di JSON)
                         if file_content_b64_start:
                             yield file_content_b64_start
 
-                        # Terima base64 chunk berikutnya sampai client close koneksi atau selesai
                         while True:
                             try:
                                 chunk = conn.recv(BUFFER_SIZE)
                                 if not chunk:
                                     break
                                 chunk_str = chunk.decode(errors="ignore")
-                                # Periksa jika client mengirim \r\n\r\n untuk tanda selesai upload
                                 if "\r\n\r\n" in chunk_str:
                                     part, _, _ = chunk_str.partition("\r\n\r\n")
                                     yield part
@@ -184,7 +175,6 @@ def run_server_threadpool(max_workers):
 
 
 def handle_client_process(conn_fd, addr):
-    # Karena kita passing socket fileno, kita perlu buat socket ulang dari fileno ini:
     conn = socket.socket(fileno=conn_fd)
     handle_client(conn, addr)
     conn.close()
@@ -200,11 +190,8 @@ def run_server_processpool(max_workers):
             try:
                 while True:
                     conn, addr = s.accept()
-                    # ambil fileno socket agar bisa dikirim ke proses lain
                     conn_fd = conn.fileno()
-                    # Tutup socket di proses utama setelah diberikan ke proses child
-                    conn.detach()  # melepas ownership socket dari proses utama supaya child yang pegang
-                    # submit ke proses pool, passing fileno socket dan addr
+                    conn.detach() 
                     executor.submit(handle_client_process, conn_fd, addr)
             except KeyboardInterrupt:
                 logging.info("Server shutting down (processpool mode)")
